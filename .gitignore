@@ -1,16 +1,18 @@
-# Compiled class file
+# ---------------------------------------------------------------------------
+# HomeHub .gitignore
+# Rule of thumb: commit source, config and fixtures; never commit build
+# output, downloaded tools, local runtime data, personal settings or secrets.
+# ---------------------------------------------------------------------------
+
+# ---- Java / Maven ----------------------------------------------------------
+target/
 *.class
-
-# Log file
-*.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
-
-# Package Files #
+hs_err_pid*
+replay_pid*
+# Packaged/downloaded binaries (build output, the OTel agent jar). If a Maven
+# wrapper is added later, un-ignore it:  !.mvn/wrapper/maven-wrapper.jar
 *.jar
 *.war
 *.nar
@@ -19,6 +21,65 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# ---- Node / frontend -------------------------------------------------------
+# (frontend/.gitignore also covers dist/, coverage/ and the generated
+#  src/api/schema.gen.ts)
+node_modules/
+.vite/
+*.tsbuildinfo
+# Playwright output (functional UI tests, Phase 10)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# ---- Environment files -----------------------------------------------------
+# frontend/.env.development IS committed: it only holds localhost URLs.
+# Personal overrides go in *.local files, which are never committed.
+.env.local
+.env.*.local
+
+# ---- Secrets guard ---------------------------------------------------------
+# The emulator writes its keys to ~/.aws/emulator/<port>/, outside the repo.
+# These patterns stop an accidental copy from ever being committed.
+emulator_credentials
+*.pem
+*.p12
+# ...except test fixtures: a throwaway public test certificate (no private
+# key) and a not-a-certificate file, used by PemTrustManagersTest.
+!backend/src/test/resources/*.pem
+
+# ---- Local runtime data ----------------------------------------------------
+# OTel Java agent, auto-downloaded by scripts/otel-env.sh
+otel/
+# Collector output (traces/metrics/logs jsonl); keep the folder itself
+telemetry/*
+!telemetry/.gitkeep
+# Logs (app, npm, crash logs)
+*.log
+
+# ---- IDEs and editors (personal settings) ----------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+# Eclipse / VS Code Java language server metadata
+.project
+.classpath
+.settings/
+.factorypath
+backend/bin/
+*.swp
+*~
+
+# ---- Claude Code personal settings ----------------------------------------
+# (shared project settings in .claude/settings.json may be committed)
+.claude/settings.local.json
+
+# ---- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# ---- Python (scripts/telemetry_summary.py) ---------------------------------
+__pycache__/
+*.pyc
