@@ -1,0 +1,73 @@
+spring:
+  application:
+    name: homehub-api
+  profiles:
+    default: local
+  jackson:
+    default-property-inclusion: non_null   # absent, not null (e.g. nextToken on last page)
+  mvc:
+    problemdetails:
+      enabled: true   # RFC 9457 problem+json for framework errors (D-6)
+
+logging:
+  level:
+    # The OTel agent forwards every log event that passes these levels, so
+    # this is also the telemetry log filter. Framework INFO is noise for
+    # "what did users do"; scripts/otel-env.sh sets WARN unless
+    # HOMEHUB_TELEMETRY=verbose.
+    root: ${HOMEHUB_LOG_LEVEL_FRAMEWORK:INFO}
+    com.homehub: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true  # /actuator/health/readiness flips UP only after the
+                       # bootstrap + seed ApplicationRunners have finished
+
+springdoc:
+  # Explicit (not default) so springdoc doesn't WARN about it at startup.
+  # The spec feeds frontend type generation; disable both under 'aws'.
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+
+homehub:
+  aws:
+    region: ${AWS_REGION:us-west-2}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+homehub:
+  bootstrap-infra: true
+  seed-data: true
+  seed-path: ../test/data
+  aws:
+    endpoint: ${AWS_ENDPOINT_URL:}
+    ca-bundle: ${AWS_CA_BUNDLE:}
+    region: us-west-2
+  cors:
+    allowed-origins: ${HOMEHUB_UI_ORIGINS:http://localhost:5173}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: aws
+homehub:
+  bootstrap-infra: false
+  seed-data: false
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

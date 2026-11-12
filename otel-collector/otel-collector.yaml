@@ -1,0 +1,114 @@
+# HomeHub OpenTelemetry Collector configuration
+# OTLP in (backend gRPC + browser HTTP) → OTLP JSON Lines files in /telemetry
+# Lives in homehub/otel-collector/ (moved from the former homehub-otel-collector
+# project). Edit here; scripts/otel-env.sh rebuilds the image when this changes.
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # Must be 0.0.0.0 inside a container; the collector's default is
+        # localhost, which is unreachable through Docker's port mapping.
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        # The React app (Vite dev server and the S3-hosted build) sends traces
+        # from the browser, so the HTTP receiver needs CORS. Local-only:
+        # any localhost/127.0.0.1 port is allowed.
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "http://127.0.0.1:*"
+            - "https://localhost:*"
+          allowed_headers:
+            - "*"
+          max_age: 7200
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    # Small timeout so files update quickly — tests read telemetry/ as an oracle.
+    timeout: 1s
+    send_batch_size: 512
+
+  # Keep USER ACTIONS, drop background telemetry. A processor sits between
+  # receiver and exporter and can modify or drop data; `filter` DROPS every
+  # item for which ANY condition is true. Conditions are OTTL (OpenTelemetry
+  # Transformation Language) expressions evaluated per metric / per span.
+  # Filtering here (not in the app) is the standard split: instrumentation
+  # emits what it can, the pipeline decides what is worth keeping.
+  filter/noise:
+    # A condition that errors (e.g. attribute missing) is treated as false,
+    # so the item is KEPT rather than the whole batch failing.
+    error_mode: ignore
+    metrics:
+      metric:
+        # The SDK's own health metrics (span/log queue size, exporter
+        # counters). Emitted every interval even when idle; the Java agent
+        # (2.33.1) has no setting to turn them off.
+        - 'IsMatch(instrumentation_scope.name, "^io\\.opentelemetry\\.(sdk|exporters)\\.")'
+    traces:
+      span:
+        # Tooling, not users: health probes, OpenAPI spec, Swagger UI.
+        - 'kind == SPAN_KIND_SERVER and IsMatch(attributes["url.path"], "^/(actuator|v3/api-docs|swagger-ui)")'
+        # CORS preflights: browsers send one per new URL because of the
+        # traceparent header. They carry no trace context and aren't actions.
+        - 'kind == SPAN_KIND_SERVER and attributes["http.request.method"] == "OPTIONS"'
+
+exporters:
+  # One file per signal, OTLP JSON (one JSON object per line), rotated.
+  file/traces:
+    path: /telemetry/traces/traces.jsonl
+    format: json
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 10
+      max_backups: 5
+  file/metrics:
+    path: /telemetry/metrics/metrics.jsonl
+    format: json
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 10
+      max_backups: 5
+  file/logs:
+    # App logs AND domain events (log records with event.name) land here.
+    path: /telemetry/logs/logs.jsonl
+    format: json
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 10
+      max_backups: 5
+
+  # Live one-line-per-batch summary: `docker logs -f homehub-otel`
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check]
+  pipelines:
+    # Order matters: memory_limiter first (back-pressure before any work),
+    # filter before batch (don't spend batching on data we'll drop).
+    # Logs are not filtered: the app already limits them at the source.
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/noise, batch]
+      exporters: [file/traces, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/noise, batch]
+      exporters: [file/metrics, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/logs, debug]
+  telemetry:
+    logs:
+      level: info

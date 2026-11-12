@@ -1,0 +1,45 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1d1d1b;
+  --muted: #6b6b66;
+  --border: #e3e3de;
+  --accent: #1f6f5c;
+  --active: #1f6f5c;
+  --under-offer: #a3620a;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --surface: #222220;
+    --text: #ececea;
+    --muted: #a3a39d;
+    --border: #3a3a37;
+    --accent: #5fc4a8;
+    --active: #5fc4a8;
+    --under-offer: #e0a64a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); }
+a { color: var(--accent); }
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+h1 { margin: 0 0 16px; font-size: 1.75rem; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 24px; }
+.filters label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+.filters input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); width: 140px; font-size: 1rem; }
+button { padding: 9px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font-size: 1rem; cursor: pointer; }
+button:disabled { opacity: 0.6; cursor: default; }
+.grid { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.photo-placeholder { aspect-ratio: 4 / 3; display: grid; place-items: center; background: var(--border); color: var(--muted); font-size: 0.85rem; }
+.card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.price { font-size: 1.25rem; font-weight: 600; text-decoration: none; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+.badge { align-self: flex-start; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.badge-active { color: var(--active); }
+.badge-under_offer { color: var(--under-offer); }
+.detail { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 16px; }
